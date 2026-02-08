@@ -244,15 +244,26 @@ reboot
 
 ---
 
-### Bullseye → Bookworm
+## Bullseye → Bookworm (Final Upgrade Step)
+
+This is the final upgrade step.  
+Once Bookworm is reached, the system is intended for normal long-term use, so a **full Debian sources list** is restored.
+
+Edit the sources list:
 
 ```bash
 nano /etc/apt/sources.list
 ```
 
+Set the full Bookworm sources:
+
 ```text
 deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
+deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
+deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
 ```
+
+Upgrade the system:
 
 ```bash
 apt update
@@ -264,12 +275,28 @@ reboot
 
 ## 13. Restore ck-splash (LED Control)
 
+After the system is fully upgraded to **Debian Bookworm**, restore LED control.
+
 Copy `ck-splash` from the backup to `/sbin/`:
 
 ```bash
 cp ck-splash /sbin/
 ```
+> [!NOTE]
+> For customizing the Cloud Key Gen2+ OLED / framebuffer display (showing custom data, stats, or images), see the project  
+> https://github.com/jnovack/cloudkey
 
+
+---
+
+## 13. Restore ck-splash (LED Control)
+
+Copy `ck-splash` from the backup to `/sbin/`:
+
+```bash
+cp ck-splash /sbin/
+```
+https://github.com/jnovack/cloudkey?utm_source=chatgpt.com
 ---
 
 ## Recovery: Restore Device From SD Card Backup (CD)
