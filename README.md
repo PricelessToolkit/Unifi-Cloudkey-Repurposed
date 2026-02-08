@@ -1,4 +1,4 @@
-# UniFi Cloud Key Gen2+ — Debian Rescue & Install Wiki
+# UniFi Cloud Key Gen2+ — Custom Boot and RootFs Guide
 Replace UniFi OS on the Cloud Key Gen2 Plus with a standard Debian ARM64 root filesystem, enabling normal disk mounting and Linux workflows. Includes serial rescue, full eMMC backup, staged Debian upgrades, and recovery instructions.
 
 Original post https://xdaforums.com/t/unifi-cloud-key-gen-2-plus.4664639/
