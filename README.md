@@ -21,7 +21,7 @@ This guide replaces UniFi OS on a **Cloud Key Gen2 Plus** with a minimal **Debia
 
 ## 1. Disassemble Device and Access Serial Header
 
-Follow this guide to disassemble the device and gain access to the **J22 serial header**:
+Follow this guide to disassemble the device and connect the USB to TTL 3.3V adapter to **J22 serial header**:
 
 ```
 https://colincogle.name/blog/unifi-cloud-key-rescue/
