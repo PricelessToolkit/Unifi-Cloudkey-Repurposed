@@ -1,355 +1,257 @@
-# UniFi Cloud Key Gen2+ — Custom Boot and RootFs Guide
-Replace UniFi OS on the Cloud Key Gen2 Plus with a standard Debian ARM64 root filesystem, enabling normal disk mounting and Linux workflows. Includes serial rescue, full eMMC backup, staged Debian upgrades, and recovery instructions.
+# Cloud Key Gen2 Plus – WireGuard Client Setup (Debian 11, Kernel 3.18)
 
-Original post https://xdaforums.com/t/unifi-cloud-key-gen-2-plus.4664639/
+This guide documents how to install and run **WireGuard in userspace mode** on a **Ubiquiti Cloud Key Gen2 Plus** running:
 
-> ⚠️ **WARNING**  
-> This procedure modifies the internal eMMC of the device.  
-> Incorrect use of `dd` or partitioning commands **can permanently brick the device**.  
-> Always perform the backup step before proceeding.
+- Debian 11 (bullseye)
+- Kernel 3.18.44-ui-qcom (no native WireGuard module)
 
----
-
-## Overview
-
-This guide replaces UniFi OS on a **Cloud Key Gen2 Plus** with a minimal **Debian ARM64** system, using:
-- a custom boot image
-- a custom root filesystem
-- a step-by-step Debian upgrade path (Jessie → Bookworm)
+Because the kernel is too old for the WireGuard module, we use **wireguard-go (userspace implementation)**.
 
 ---
 
-## 1. Disassemble Device and Access Serial Header
-
-Follow this guide to disassemble the device and connect the USB to TTL 3.3V adapter to **J22 serial header**:
-
-```
-https://colincogle.name/blog/unifi-cloud-key-rescue/
-```
-
----
-
-## 2. Boot Into Recovery Mode and Log In
-
-Boot the device into recovery mode.
-
-Login via serial console:
-
-```
-login: root
-password: ubnt
-```
-
----
-
-## 3. Backup the Original MMC (CRITICAL)
-
-Insert a **blank SD card larger than 32GB**.
-
-Backup the internal eMMC to the SD card:
-
-```bash
-dd if=/dev/mmcblk0 of=/dev/mmcblk1 conv=noerror,sync
-```
-
-This creates a full raw backup of the device storage.
-
----
-
-## 4. Mount USB Drive With Custom Boot Image
-
-Insert a USB drive containing:
-
-```
-custom_boot.img
-```
-
-Mount the USB drive:
-
-```bash
-mkdir /tmp/flash
-mount /dev/sdb1 /tmp/flash
-```
-
----
-
-## 5. Flash the Custom Boot Image
-
-Flash the boot image to the existing boot partition:
-
-```bash
-dd if=/tmp/flash/custom_boot.img of=/dev/mmcblk0p42
-```
-
----
-
-## 6. Repartition Internal MMC
-
-Open `parted`:
-
-```bash
-parted /dev/mmcblk0
-```
-
-Delete existing partitions:
-
-```bash
-rm 44
-rm 45
-rm 46
-rm 47
-```
-
-Create a new EXT4 partition using the available space, **ensuring the partition number is 44**:
-
-```bash
-mkpart primary ext4
-```
-
-Exit `parted`:
-
-```bash
-quit
-```
-
----
-
-## 7. Format the New Root Partition
-
-Format partition 44:
-
-```bash
-mkfs.ext4 /dev/mmcblk0p44
-```
-
----
-
-## 8. Obtain Debian ARM64 Root Filesystem or Creat
-Link: https://github.com/jubinson/debian-rootfs
-
-Use the following root filesystem archive:
-
-```
-arm64-rootfs-20170318T102424Z.tar.gz
-```
-
----
-
-## 9. Copy RootFS to External Drive and Mount It
-
-Copy `arm64-rootfs-20170318T102424Z.tar.gz` to an external USB drive.
-
-Mount the external drive:
-
-```bash
-mount /dev/sdb1 /mnt
-```
-
----
-
-## 10. Mount Partition 44 and Extract RootFS
-
-Mount the new root partition:
-
-```bash
-mount /dev/mmcblk0p44 /mnt/root
-```
-
-Extract the root filesystem:
-
-```bash
-tar -xpf /mnt/arm64-rootfs-20170318T102424Z.tar.gz -C /mnt/root
-```
-
----
-
-## 11. Reboot Into Debian Jessie
-
-Reboot the device:
-
-```bash
-reboot
-```
-
-Result:
-- Boots into **Debian Jessie**
-- SSH enabled
-- No password set
-
----
-
-## 12. Upgrade Debian Step-by-Step to Bookworm
-
-Debian **must be upgraded one release at a time**.
-
-Upgrade path:
-
-```
-Jessie → Stretch → Buster → Bullseye → Bookworm
-```
-
----
-
-### Jessie → Stretch
-
-```bash
-nano /etc/apt/sources.list
-```
-
-```text
-deb http://archive.debian.org/debian stretch main contrib non-free
-```
+# 1. Update system
 
 ```bash
 apt update
-apt dist-upgrade
-reboot
+apt upgrade -y
 ```
 
 ---
 
-### Stretch → Buster
+# 2. Install required packages
 
 ```bash
-nano /etc/apt/sources.list
+apt install wireguard-tools build-essential git -y
 ```
 
-```text
-deb http://deb.debian.org/debian buster main contrib non-free
-```
+- `wireguard-tools` → provides `wg` and `wg-quick`
+- `build-essential` → required to build wireguard-go
+- `git` → to clone source
+
+---
+
+# 3. Install a newer Go version (if required)
+
+Bullseye default Go may be too old. Install from backports:
 
 ```bash
-apt update
-apt dist-upgrade
-reboot
+apt -t bullseye-backports install golang -y
+```
+
+Verify:
+
+```bash
+go version
+```
+
+You need Go ≥ 1.17.
+
+---
+
+# 4. Build wireguard-go (userspace engine)
+
+```bash
+cd /tmp
+git clone https://git.zx2c4.com/wireguard-go
+cd wireguard-go
+make
+```
+
+Install binary:
+
+```bash
+cp wireguard-go /usr/local/bin/
+chmod +x /usr/local/bin/wireguard-go
+```
+
+Verify:
+
+```bash
+/usr/local/bin/wireguard-go -version
 ```
 
 ---
 
-### Buster → Bullseye
+# 5. Create WireGuard configuration
+
+Create directory:
 
 ```bash
-nano /etc/apt/sources.list
+mkdir -p /etc/wireguard
 ```
 
-```text
-deb http://deb.debian.org/debian bullseye main contrib non-free
-```
+Create config file:
 
 ```bash
-apt update
-apt dist-upgrade
-reboot
+nano /etc/wireguard/wg0.conf
+```
+
+Example **client configuration (full tunnel)**:
+
+```ini
+[Interface]
+PrivateKey = YOUR_PRIVATE_KEY
+Address = 10.0.0.4/32
+
+[Peer]
+PublicKey = YOUR_SERVER_PUBLIC_KEY
+Endpoint = your.ddns.domain:51820
+AllowedIPs = 0.0.0.0/0
+PersistentKeepalive = 25
+```
+
+⚠ If you want split tunnel instead of full tunnel:
+
+```
+AllowedIPs = 10.0.0.0/24
+```
+
+Secure the file:
+
+```bash
+chmod 600 /etc/wireguard/wg0.conf
 ```
 
 ---
 
-## Bullseye → Bookworm (Final Upgrade Step)
+# 6. Bring the tunnel up
 
-This is the final upgrade step.  
-Once Bookworm is reached, the system is intended for normal long-term use, so a **full Debian sources list** is restored.
-
-Edit the sources list:
+Because the kernel module is missing, `wg-quick` will automatically fall back to userspace mode.
 
 ```bash
-nano /etc/apt/sources.list
+wg-quick up wg0
 ```
 
-Set the full Bookworm sources:
+You should see:
 
-```text
-deb http://deb.debian.org/debian bookworm main contrib non-free non-free-firmware
-deb http://deb.debian.org/debian bookworm-updates main contrib non-free non-free-firmware
-deb http://security.debian.org/debian-security bookworm-security main contrib non-free non-free-firmware
+```
+Missing WireGuard kernel module. Falling back to slow userspace implementation.
 ```
 
-Upgrade the system:
+That is expected.
+
+Check status:
 
 ```bash
-apt update
-apt dist-upgrade
-reboot
+wg
+```
+
+You should see:
+
+```
+latest handshake: X seconds ago
+transfer: ...
 ```
 
 ---
 
-## 13. Restore ck-splash (LED Control)
+# 7. Verify routing (full tunnel)
 
-After the system is fully upgraded to **Debian Bookworm**, restore LED control.
-
-Copy `ck-splash` from the backup to `/sbin/`:
+Test public IP:
 
 ```bash
-cp ck-splash /sbin/
+curl ifconfig.me
 ```
-> [!NOTE]
-> For customizing the Cloud Key Gen2+ OLED / framebuffer display (showing custom data, stats, or images), see the project  
-> https://github.com/jnovack/cloudkey
 
+If full tunnel works, it should show your **home public IP**, not the remote ISP IP.
 
----
-
-## 13. Restore ck-splash (LED Control)
-
-Copy `ck-splash` from the backup to `/sbin/`:
+Check routing rules:
 
 ```bash
-cp ck-splash /sbin/
+ip rule
+ip route
 ```
-https://github.com/jnovack/cloudkey?utm_source=chatgpt.com
----
 
-## Recovery: Restore Device From SD Card Backup (CD)
-
-This section restores the device to its **original state** using the SD card backup created in step 3.
-
-### When to Use This
-
-- Device does not boot
-- Partitioning or flashing failed
-- You want to revert to the original UniFi OS layout
+wg-quick creates policy routing table `51820` automatically.
 
 ---
 
-### Recovery Steps
-
-1. Boot the device into **recovery mode**
-2. Log in via serial console:
-
-```
-login: root
-password: ubnt
-```
-
-3. Insert the SD card containing the backup
-
-4. Restore the full eMMC image:
+# 8. Enable auto-start at boot
 
 ```bash
-dd if=/dev/mmcblk1 of=/dev/mmcblk0 conv=noerror,sync
+systemctl enable wg-quick@wg0
 ```
 
-5. Reboot the device:
+To start immediately:
 
 ```bash
-reboot
+systemctl start wg-quick@wg0
 ```
 
 ---
 
-### Recovery Result
+# 9. Performance Notes
 
-- Original partition table restored
-- Original boot image restored
-- UniFi OS fully recovered
+On Cloud Key Gen2 Plus:
+
+- Kernel: 3.18
+- Userspace WireGuard
+- ARM CPU (no crypto acceleration)
+
+Expected throughput:
+
+- ~150–220 Mbps
+- ~20–25 MB/s file transfer
+- CPU usage ~80–100% during heavy transfers
+
+This is normal and hardware-limited.
 
 ---
 
-## Final State (After Successful Install)
+# 10. Troubleshooting
 
-- Debian **Bookworm**
-- Root filesystem on `/dev/mmcblk0p44`
-- Boot image replaced with `custom_boot.img`
-- Kernel unchanged
-- LED control functional via `ck-splash`
+### If you see:
 
+```
+RTNETLINK answers: Operation not supported
+```
+
+This is normal — kernel module is missing. Userspace fallback will activate automatically.
+
+---
+
+### If you see:
+
+```
+resolvconf: command not found
+```
+
+Either:
+
+- Remove `DNS=` line from config  
+or  
+- Install resolvconf:
+
+```bash
+apt install resolvconf -y
+```
+
+---
+
+### Check handshake
+
+```bash
+wg
+```
+
+If handshake shows `never`, generate traffic:
+
+```bash
+ping 10.0.0.1
+```
+
+---
+
+# Result
+
+You now have:
+
+- Cloud Key Gen2 Plus
+- Working WireGuard client
+- Userspace fallback mode
+- Optional full-tunnel routing
+- Persistent startup
+
+No firmware flashing required.
+No kernel upgrade required.
+Stable and production-ready.
