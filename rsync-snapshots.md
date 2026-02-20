@@ -26,31 +26,6 @@ Each run:
 
 ---
 
-# 2. Installation
-
-Clone your repository or create a folder:
-
-```bash
-mkdir -p scripts
-nano scripts/rsync-snapshots.sh
-```
-
-Paste the script into the file.
-
-Make it executable:
-
-```bash
-chmod +x scripts/rsync-snapshots.sh
-```
-
-(Optional) Add to Git:
-
-```bash
-git add scripts/rsync-snapshots.sh
-git commit -m "Add rsync snapshot backup script"
-```
-
----
 
 # 3. Configuration
 
@@ -307,4 +282,3 @@ Ensure remote directory exists and is writable by SSH user.
 
 ---
 
-You can now commit this README to GitHub.
