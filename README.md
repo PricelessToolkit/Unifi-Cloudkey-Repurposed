@@ -53,44 +53,6 @@ This repository documents practical modifications, system tweaks, and custom too
 
 ---
 
-## 🧰 Device Overview
-
-The UniFi Cloud Key Gen2 is essentially:
-- ARM-based Linux device
-- Internal battery
-- PoE-powered
-- eMMC storage
-- RGB status LED
-
-With proper configuration, it can serve as:
-
-- Backup endpoint
-- VPN client
-- Monitoring node
-- Remote management tool
-- Lightweight automation host
-
----
-
-## 📚 Documentation Structure
-
-Each topic has its own directory with:
-
-- Step-by-step instructions
-- Required commands
-- Configuration examples
-- Troubleshooting notes
-
-Example structure:
-
-```
-backup/
-wireguard/
-led-control/
-battery-monitoring/
-```
-
----
 
 ## ⚠ Disclaimer
 
@@ -111,12 +73,5 @@ Improvements, fixes, and additional documentation are welcome.
 
 If you discover better methods, optimizations, or additional hardware capabilities — feel free to open a pull request.
 
----
-
-## 📄 License
-
-Add a license of your choice (MIT recommended for documentation/scripts).
-
----
 
 > Repurpose hardware. Reduce waste. Build useful things.
