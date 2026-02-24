@@ -26,13 +26,16 @@ Your subscription goes a long way in backing my work. If you feel more generous,
 
 ## Why Use a CloudKey Gen2 as a Remote Backup?
 
-The UniFi CloudKey Gen2 is a very practical device for remote backups. It consumes only around 5–6 watts, which equals roughly 44–53 kWh per year when running 24/7. This makes it inexpensive to operate long-term, even when hosted at a friend’s or family member’s apartment.
+The UniFi CloudKey Gen2 is a practical device for remote backups. It consumes only around 5–6 watts, which equals roughly 44–53 kWh per year when running 24/7. This makes it inexpensive to operate long-term, even when hosted at a friend’s or family member’s apartment.
 
 When used with a 2.5" SSD, the system has no fans and no spinning disks, meaning no moving mechanical parts. It runs silently and does not require frequent maintenance.
+
+A strong advantage of the CloudKey Gen2 is its internal battery (built-in UPS). If power is lost, the device detects it and shuts down safely instead of crashing. This reduces the risk of filesystem corruption during outages. On older units, the internal battery may require replacement over time. The newest versions have no integrated battery.
 
 The hardware design is compact and clean, so it can sit on a shelf without looking like a server. It is small enough to ship to another city or country if needed.
 
 Performance is sufficient for remote backups, with transfer speeds up to around 400 Mbps in real-world use. This is fast enough for efficient replication while remaining suitable for typical residential internet connections.
+
 
 ---
 
