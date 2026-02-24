@@ -19,6 +19,12 @@ This repository focuses on simple, reproducible modifications to extend the hard
 - Persistent tunnel setup
 - Auto-start on boot
 
+### 📂 SMB (Samba)
+- Secure share for `/volume1/backup`
+- Dedicated restricted user
+- Writable backup target
+- Logging fully disabled (no eMMC writes)
+
 ### 💡 Hardware
 - LED control
 - Battery status monitoring (charge level, power source, health)
@@ -43,7 +49,3 @@ This repository focuses on simple, reproducible modifications to extend the hard
 
 These modifications are unofficial.  
 You are responsible for your data, hardware, and network security.
-
----
-
-> Repurpose hardware. Reduce waste. Build useful systems.
