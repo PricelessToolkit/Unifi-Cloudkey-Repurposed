@@ -2,7 +2,7 @@
 
 This device exposes `/volume1/backup` over SMB for controlled remote access.
 
-The configuration is minimal and restricted to a dedicated user.
+The configuration is minimal, restricted to a dedicated user, and logging is fully disabled to avoid unnecessary eMMC writes.
 
 ---
 
@@ -24,7 +24,7 @@ sudo systemctl start smbd
 
 ## Create SMB User
 
-Create a system user (no shell login required):
+Create a system user:
 
 ```bash
 sudo adduser smbuser
@@ -36,7 +36,7 @@ Add the user to Samba:
 sudo smbpasswd -a smbuser
 ```
 
-Ensure the backup directory ownership matches:
+Set directory ownership and permissions:
 
 ```bash
 sudo chown -R smbuser:smbuser /volume1/backup
@@ -53,11 +53,12 @@ Edit:
 sudo nano /etc/samba/smb.conf
 ```
 
-Add or modify:
+Minimal configuration:
 
 ```ini
-log level = 0
-max log size = 50
+[global]
+   log level = 0
+   logging = none
 
 [backup]
    path = /volume1/backup
@@ -72,14 +73,14 @@ Restart Samba:
 
 ```bash
 sudo systemctl restart smbd
+sudo systemctl restart nmbd
 ```
 
 ---
 
-## Notes
+## Result
 
-- `log level = 0` keeps logging minimal (reduced eMMC writes)
-- `max log size = 50` limits individual log file size (in KB)
-- Access is restricted to `smbuser`
-- Permissions enforce group-based control
-- Share is writable and intended for controlled backup access only
+- No Samba logs written to disk
+- No Samba logs sent to journald
+- Reduced eMMC wear
+- Minimal and controlled SMB access
