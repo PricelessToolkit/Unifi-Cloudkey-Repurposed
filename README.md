@@ -25,7 +25,8 @@ This repository focuses on simple, reproducible modifications to extend the hard
 
 Before applying the modifications in this repository, make sure the Cloud Key is updated to the latest firmware.
 
-SSH access must be enabled from the UniFi OS web interface. When enabling SSH from the UI, you set the root password there.
+SSH access must be enabled from the UniFi OS web interface.  
+When enabling SSH from the UI, you set the root password there.
 
 Default SSH user:
 
@@ -37,7 +38,18 @@ Login example:
 ssh root@<cloudkey-ip>
 ```
 
-After logging in, follow the instructions in this repository to convert the device into a minimal backup node.
+Before proceeding, uninstall any unused UniFi applications from the UI, such as:
+
+- UniFi Network
+- UniFi Protect
+- Any other UniFi services
+
+This device is being repurposed and should not run unnecessary controller services.
+
+⚠ **Very important:** Disable automatic updates in UniFi OS settings.  
+Automatic updates may reinstall services or overwrite custom configurations.
+
+After logging in and cleaning the system, follow the instructions in this repository to convert the device into a minimal remote backup / NAS node.
 
 
 
