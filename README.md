@@ -106,8 +106,15 @@ Automatic updates may reinstall services or overwrite custom configurations.
 
 After logging in and cleaning the system, follow the instructions in this repository to convert the device into a minimal remote backup / NAS node.
 
+Use the documentation files provided:
 
-
+- `motd.md` – Custom login banner configuration  
+- `log.md` – RAM-only journald configuration  
+- `smb.md` – Samba (SMB) setup for `/volume1/backup`  
+- `wireguard.md` – WireGuard client configuration  
+- `Led and Battery.md` – LED control and battery monitoring  
+- `rsync-snapshots.md` – Snapshot backup script and usage instructions
+  
 ---
 
 ## ⚠ Disclaimer
