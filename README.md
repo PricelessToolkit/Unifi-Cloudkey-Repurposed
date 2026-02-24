@@ -1,6 +1,6 @@
 # 🔧 Repurposing UniFi Cloud Key Gen2
 
-A collection of manuals, scripts, and notes for repurposing the **UniFi Cloud Key Gen2** into a flexible Linux-based utility device.
+A collection of manuals, scripts, and notes for repurposing the **UniFi Cloud Key Gen2** into a remote backup device that uses only 5W.
 
 This repository documents practical modifications, system tweaks, and custom tooling to extend the life and capabilities of the Cloud Key hardware.
 

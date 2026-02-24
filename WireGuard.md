@@ -190,9 +190,9 @@ On Cloud Key Gen2 Plus:
 
 Expected throughput:
 
-- ~150–220 Mbps
-- ~20–25 MB/s file transfer
-- CPU usage ~80–100% during heavy transfers
+- ~200–400 Mbps
+- ~25–50 MB/s file transfer
+- CPU usage ~50-60% during heavy transfers
 
 This is normal and hardware-limited.
 
