@@ -57,13 +57,21 @@ Performance is sufficient for remote backups, with transfer speeds up to around 
 - Writable backup target  
 - Logging fully disabled (no eMMC writes)  
 
-</td>
-<td width="50%" valign="top">
-
 ### 🌐 Networking
 - WireGuard client configuration  
 - Persistent tunnel setup  
 - Auto-start on boot  
+
+</td>
+<td width="50%" valign="top">
+
+### 🖥 Display Status Screen
+- Custom 128x64 status screen via `ck-splash`  
+- Shows LAN IP, WireGuard IP, and free backup space  
+- PNG rendered in RAM (`/tmp`) to avoid eMMC wear  
+- Optional cron refresh (e.g. every 5 minutes)  
+
+<img src="img/display.png" width="260"/>
 
 ### 💡 Hardware
 - LED control  
