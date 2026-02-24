@@ -1,284 +1,248 @@
 # rsync-snapshots.sh — Snapshot Backups over SSH
 
-This script creates rsync-based snapshot backups over SSH using hard links (`--link-dest`) for space efficiency.
+A safer snapshot-based backup script using `rsync` and hard links (`--link-dest`).
 
 Each run:
-- Creates a new snapshot: `YYYY-MM-DD_HHMM`
-- Uses a temporary `.incomplete-*` directory
+
+- Creates snapshot: `YYYY-MM-DD_HHMMSS`
+- Uses `.incomplete-*` temp directory
+- Atomically renames on success
 - Updates `latest` symlink
-- Deletes old snapshots beyond retention limit
+- Enforces retention (keep last N)
+- Prevents concurrent runs (remote lockdir)
+- Performs remote disk space pre-check
+- Protects against accidental mass deletion
 - Optionally sends Telegram notifications
-- Supports configurable exclusions
 
 ---
 
 # 1. Requirements
 
-## Local machine
+## Local
 - bash
 - rsync
 - ssh
-- curl (only if using Telegram notifications)
+- curl (optional, for Telegram)
 
-## Remote machine
+## Remote
 - rsync
-- coreutils (mkdir, mv, ln, rm, ls, sort, readlink)
+- bash
+- coreutils (mkdir, mv, ln, rm, ls, awk, sed, head, wc, readlink)
+- df
 
 ---
 
+# 2. Configuration
 
-# 3. Configuration
+Edit the CONFIG section in the script.
 
-Open the script and edit the CONFIG section.
-
-## Required settings
-
-Set your local source:
+## Required
 
 ```bash
 LOCAL_BASE_DIR="/data"
-```
 
-Set remote SSH target:
-
-```bash
 REMOTE_USER="root"
-REMOTE_HOST="your.server.lan"
+REMOTE_HOST="server.lan"
 REMOTE_PORT="22"
-```
 
-Set remote backup directory:
-
-```bash
 REMOTE_BASE_DIR="/volume1/backup/rsync"
-```
 
-## Retention policy
-
-Keep last N snapshots:
-
-```bash
 SNAPSHOT_KEEP="10"
 ```
 
 ---
 
-# 4. Safety Guard (Recommended)
+# 3. Safety Features
 
-To prevent accidental empty backups:
+## Required Paths Guard
+
+Prevents running if critical paths are missing:
 
 ```bash
 REQUIRED_PATHS="photos documents"
 ```
 
-The script will refuse to run if those paths do not exist under LOCAL_BASE_DIR.
-
-Set empty to disable:
-
-```bash
-REQUIRED_PATHS=""
-```
+Set empty to disable.
 
 ---
 
-# 5. SSH Setup (Recommended)
+## Max Delete Protection
 
-Test SSH:
-
-```bash
-ssh -p 22 root@your.server.lan "echo ok"
-```
-
-If it asks for password every time, set up SSH keys:
-
-Generate key:
+Limits how many deletions rsync can perform:
 
 ```bash
-ssh-keygen -t ed25519 -C "backup-key"
+MAX_DELETE="50000"
 ```
 
-Copy key to remote:
+Prevents wiping destination if source is empty/mis-mounted.
 
-```bash
-ssh-copy-id -p 22 root@your.server.lan
-```
-
-Test again:
-
-```bash
-ssh root@your.server.lan
-```
+Set `0` to disable.
 
 ---
 
-# 6. Exclusions Configuration
+## Remote Lock
 
-The script supports multiple exclusion methods.
+Creates:
 
-## A. Exclude by file extension
-
-Exclude file types anywhere in the tree:
-
-```bash
-EXCLUDE_EXTENSIONS="mp4 mp3 iso"
+```
+.rsync-snapshots.lockdir
 ```
 
-You can include dots or not:
-
-```bash
-EXCLUDE_EXTENSIONS=".mp4 .mp3"
-```
+Prevents concurrent runs.
 
 ---
 
-## B. Exclude directory names (anywhere)
+## Incomplete Snapshot Protection
 
-Exclude directories by name anywhere in the tree:
+- Script refuses to overwrite existing `.incomplete-*`
+- Leaves failed snapshots for inspection
+- Atomic rename only on success
+
+---
+
+## Remote Disk Space Check
+
+Optional thresholds:
+
+```bash
+REMOTE_MIN_FREE_BYTES=0
+REMOTE_MIN_FREE_PERCENT=""
+```
+
+If free space is below threshold, backup aborts before rsync.
+
+---
+
+# 4. Exclusions
+
+## By extension
+
+```bash
+EXCLUDE_EXTENSIONS="mp4 mp3"
+```
+
+## By directory name
 
 ```bash
 EXCLUDE_DIRNAMES="pictures trash"
 ```
 
-Common NAS/system junk example:
+## Delete excluded from destination
 
 ```bash
-EXCLUDE_DIRNAMES="pictures trash .Trash-1000 .Trashes @eaDir #recycle"
+DELETE_EXCLUDED="1"
 ```
 
 ---
 
-## C. Custom rsync patterns
+# 5. Optional Features
 
-Advanced patterns (newline separated):
+## Resume support
 
 ```bash
-EXCLUDE_PATTERNS=$'*.tmp\ncache/\nDownloads/\n**/.DS_Store'
+RSYNC_RESUME_PARTIAL="1"
+```
+
+Enables `--partial-dir` inside temp snapshot.
+
+## Stay on one filesystem
+
+```bash
+ONE_FILE_SYSTEM="1"
+```
+
+## Preserve ACLs / xattrs
+
+```bash
+PRESERVE_ACL_XATTR="1"
+```
+
+## Preserve source hardlinks
+
+```bash
+PRESERVE_SOURCE_HARDLINKS="1"
 ```
 
 ---
 
-## D. Excludes file (optional)
+# 6. SSH Setup
 
-Create a file:
-
-```bash
-nano excludes.txt
-```
-
-Example content:
-
-```
-*.tmp
-cache/
-Downloads/
-**/.DS_Store
-```
-
-Set in script:
+Test:
 
 ```bash
-EXCLUDE_FILE="/path/to/excludes.txt"
+ssh -p 22 root@server.lan
+```
+
+Use SSH keys for automation.
+
+Host key checking mode:
+
+```bash
+SSH_STRICT_HOST_KEY_CHECKING="yes"
 ```
 
 ---
 
-# 7. Running the Backup
+# 7. Snapshot Structure (Remote)
 
-Run manually:
+```
+/volume1/backup/rsync/snapshots/
+    2026-02-20_013045/
+    2026-02-21_021512/
+    latest -> 2026-02-21_021512
+    .rsync-snapshots.lockdir
+```
+
+Temporary during run:
+
+```
+.incomplete-2026-02-22_021533/
+```
+
+---
+
+# 8. Running
 
 ```bash
-./scripts/rsync-snapshots.sh
+./rsync-snapshots.sh
 ```
 
 On success:
 
 ```
-Backup OK: YYYY-MM-DD_HHMM -> user@host:/volume1/backup/rsync/snapshots/YYYY-MM-DD_HHMM
+Backup OK: 2026-02-24_021533 -> user@host:/volume1/backup/rsync/snapshots/...
 ```
 
 ---
 
-# 8. Remote Snapshot Structure
-
-Remote directory layout:
-
-```
-/volume1/backup/rsync/snapshots/
-    2026-02-20_0130/
-    2026-02-21_0130/
-    latest -> 2026-02-21_0130
-```
-
-Temporary directory during backup:
-
-```
-.incomplete-YYYY-MM-DD_HHMM/
-```
-
-If backup fails, the incomplete directory remains for inspection.
-
----
-
-# 9. Automatic Scheduling (cron)
-
-Edit crontab:
-
-```bash
-crontab -e
-```
-
-Example: run every day at 02:15
+# 9. Cron Example
 
 ```cron
-15 2 * * * /full/path/to/scripts/rsync-snapshots.sh >> /var/log/rsync-snapshots.log 2>&1
+15 2 * * * /full/path/rsync-snapshots.sh >> /var/log/rsync-snapshots.log 2>&1
 ```
 
-Important:
-- Use full absolute paths
-- Ensure cron user has SSH key access
+Use absolute paths.
 
 ---
 
 # 10. Telegram Notifications (Optional)
 
-Set:
-
 ```bash
 TELEGRAM_NOTIFY_ON_FAILURE="1"
 TELEGRAM_NOTIFY_ON_SUCCESS="0"
-TELEGRAM_BOT_TOKEN="123456:ABC-DEF..."
-TELEGRAM_CHAT_ID="-1001234567890"
+TELEGRAM_BOT_TOKEN="..."
+TELEGRAM_CHAT_ID="..."
 ```
 
-Failure notifications are recommended.
-Success notifications are optional (can be noisy).
+Failure notifications recommended.
+Success notifications optional.
 
 ---
 
-# 11. Troubleshooting
+# 11. Notes
 
-## SSH fails
-Test manually:
-
-```bash
-ssh root@your.server.lan
-```
-
-## Permission denied on remote
-Ensure remote directory exists and is writable by SSH user.
-
-## Excludes not working
-- Directory excludes match directory names anywhere.
-- For specific paths, use EXCLUDE_PATTERNS or EXCLUDE_FILE.
-
----
-
-# 12. Notes
-
-- The source directory contents are copied, not the directory itself.
-- Hard links make unchanged files consume no additional space.
-- Snapshots are independent and safe to browse or restore from.
-- Safe to interrupt — incomplete snapshots are never marked as valid.
-
----
-
+- Source contents are copied, not the directory itself.
+- Hard links ensure unchanged files consume no additional space.
+- Snapshots are independent.
+- Safe to interrupt — incomplete snapshots are not finalized.
+- Retention only deletes fully completed snapshots.
