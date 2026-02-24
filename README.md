@@ -1,4 +1,4 @@
-# 🔧 Repurposing UniFi Cloud Key Gen2
+# 🔧 CloudKey Repurposed – Remote Backup & NAS Node
 
 A practical collection of notes and scripts for turning the **UniFi Cloud Key Gen2** into a lightweight (~5W) remote backup node.
 
