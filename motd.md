@@ -65,14 +65,17 @@ Replace its contents with your custom banner.
 
 ====================== SYSTEM HELP ======================
 
-SMB config        : /etc/samba/smb.conf
-SMB share root    : /volume1/backup
-WireGuard config  : /etc/wireguard/wg0.conf
-WireGuard service : wg-quick@wg0
-System logs       : journalctl -xe
-Rsync push        : rsync -av /volume1/backup/ user@REMOTE_IP:/remote/path/
+SMB config           : /etc/samba/smb.conf
+SMB share root       : /volume1/backup
+WireGuard config     : /etc/wireguard/wg0.conf
+WireGuard service    : wg-quick@wg0
+System logs          : journalctl -xe
+Start display script : ./display.sh
+Stop display (black) : ck-splash -s black
+Rsync push           : rsync -av /volume1/backup/ user@REMOTE_IP:/remote/path/
 
 =========================================================
+
 ```
 
 ---
