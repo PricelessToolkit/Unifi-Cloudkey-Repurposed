@@ -26,7 +26,7 @@ This repository focuses on simple, reproducible modifications to extend the hard
 ### 🖥 System Customization
 - Replaced default vendor login banner
 - Custom MOTD reflecting device purpose
-
+- Disabled persistent journald storage (RAM-only logging to reduce eMMC wear)
 
 ---
 
