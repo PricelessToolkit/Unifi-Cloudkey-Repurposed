@@ -1,77 +1,49 @@
 # 🔧 Repurposing UniFi Cloud Key Gen2
 
-A collection of manuals, scripts, and notes for repurposing the **UniFi Cloud Key Gen2** into a remote backup device that uses only 5W.
+A practical collection of notes and scripts for turning the **UniFi Cloud Key Gen2** into a lightweight (~5W) remote backup node.
 
-This repository documents practical modifications, system tweaks, and custom tooling to extend the life and capabilities of the Cloud Key hardware.
-
----
-
-## 📦 Contents
-
-### 🗂 Backup & Automation
-- **rsync snapshot backup script**
-  - SSH-based incremental backups
-  - Hard-link snapshots (`--link-dest`)
-  - Retention management
-  - Configurable excludes
-  - Optional Telegram notifications
+This repository focuses on simple, reproducible modifications to extend the hardware beyond UniFi Controller use.
 
 ---
+
+## 📦 What’s Included
+
+### 🗂 Backup Script
+- rsync-based backups over SSH to CloudKey
+- Incremental snapshot support (`--link-dest`)
+- Retention handling
+- Remote push configuration
 
 ### 🌐 Networking
+- WireGuard client configuration
+- Persistent tunnel setup
+- Auto-start on boot
 
-- **WireGuard Client Setup**
-  - Install and configure WireGuard
-  - Persistent tunnel configuration
-  - Auto-start on boot
-  - Routing and DNS considerations
+### 💡 Hardware
+- LED control
+- Battery status monitoring (charge level, power source, health)
 
----
-
-### 💡 Hardware Control & Monitoring
-
-- **LED Control**
-  - How to control the front LED
-  - Change color / disable LED
-  - Use LED for status indication
-
-- **Battery Monitoring**
-  - Check internal battery charge level
-  - Detect charging status
-  - Determine power source (PoE / USB-C / battery)
-  - Monitor health and runtime
+### 🖥 System Customization
+- Replaced default vendor login banner
+- Custom MOTD reflecting device purpose
+- Disabled persistent journald storage (RAM-only logging to reduce eMMC wear)
 
 ---
 
-## 🎯 Goals of This Repository
+## 🎯 Goals
 
 - Extend hardware lifespan
-- Provide clean, minimal, reproducible setups
-- Keep documentation simple and practical
-- Avoid unnecessary bloat
-- Make the Cloud Key usable beyond UniFi Controller duties
+- Keep setup minimal and practical
+- Avoid unnecessary complexity
+- Repurpose instead of discard
 
 ---
-
 
 ## ⚠ Disclaimer
 
-These modifications are unofficial.
-
-You are responsible for:
-- Your data
-- Your hardware
-- Your network security
-
-Proceed carefully and always keep backups.
+These modifications are unofficial.  
+You are responsible for your data, hardware, and network security.
 
 ---
 
-## 🤝 Contributions
-
-Improvements, fixes, and additional documentation are welcome.
-
-If you discover better methods, optimizations, or additional hardware capabilities — feel free to open a pull request.
-
-
-> Repurpose hardware. Reduce waste. Build useful things.
+> Repurpose hardware. Reduce waste. Build useful systems.
