@@ -1,11 +1,22 @@
-<img src="https://github.com/PricelessToolkit/Cloudkey-Repurposed/blob/main/img/CKG2.jpeg"/>
+<table>
+<tr>
+<td width="40%">
 
+<img src="https://github.com/PricelessToolkit/Cloudkey-Repurposed/blob/main/img/CKG2.jpeg" width="100%"/>
 
-# 🔧 CloudKey Repurposed – Remote Backup & NAS Node
+</td>
+<td width="60%">
+
+### 🔧 CloudKey Repurposed
 
 A practical collection of notes and scripts for turning the **UniFi Cloud Key Gen2** into a lightweight (~5W) remote backup node.
 
 This repository focuses on simple, reproducible modifications to extend the hardware beyond UniFi Controller use.
+
+</td>
+</tr>
+</table>
+
 
 ---
 
