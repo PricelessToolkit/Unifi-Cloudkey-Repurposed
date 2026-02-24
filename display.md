@@ -92,7 +92,90 @@ convert "${OUTPNG}" \
 /sbin/ck-splash -s image -f "${OUTPNG}"
 ```
 
+## Vertical Display Script
+
+```bash
+
+#!/usr/bin/env bash
+set -euo pipefail
+
+# ---- Config ----
+MYFONT="DejaVu-Sans"
+OUTPNG="/tmp/ck-status.png"
+TMPPNG="/tmp/ck-status-portrait.png"
+
+# ---- Helpers ----
+get_ip() {
+  local iface="$1"
+  ip -4 addr show "$iface" 2>/dev/null | awk '/inet /{print $2}' | cut -d/ -f1 | head -n1
+}
+
+# 192.168.1.234 -> .1.234 (or 1.45)
+format_ip() {
+  local ip="$1"
+
+  if [[ -z "$ip" || "$ip" == "down" ]]; then
+    echo "down"
+    return
+  fi
+
+  local o3 o4
+  o3=$(echo "$ip" | awk -F. '{print $3}')
+  o4=$(echo "$ip" | awk -F. '{print $4}')
+
+  # If last octet is 3 digits, add leading dot for compact look
+  if [[ ${#o4} -ge 3 ]]; then
+    echo ".${o3}.${o4}"
+  else
+    echo "${o3}.${o4}"
+  fi
+}
+
+# ---- IPs ----
+IP_ETH_FULL="$(get_ip eth0 || true)"
+IP_ETH_FULL="${IP_ETH_FULL:-down}"
+IP_ETH="$(format_ip "$IP_ETH_FULL")"
+
+IP_WG_FULL="$(get_ip wg0 || true)"
+IP_WG_FULL="${IP_WG_FULL:-down}"
+IP_WG="$(format_ip "$IP_WG_FULL")"
+
+# ---- Free space ----
+FREE_BACKUP="$(df -h /volume1/backup 2>/dev/null | awk 'NR==2{print $4}')"
+FREE_BACKUP="${FREE_BACKUP:-n/a}"
+
+# ---- Time (24h) ----
+TIME_NOW="$(date +%H:%M)"
+
+# ---- Create portrait canvas ----
+convert -size 64x128 xc:black "${TMPPNG}"
+
+# ---- Draw content (portrait) ----
+convert "${TMPPNG}" \
+  -fill white -font "${MYFONT}" \
+  -gravity north \
+  -pointsize 14 -annotate +0+4   "Cloud" \
+  -annotate +0+20  "Backup" \
+  -pointsize 10 \
+  -annotate +0+42  "LAN ${IP_ETH}" \
+  -annotate +0+55  "WG ${IP_WG}" \
+  -pointsize 14 \
+  -annotate +0+70  "FREE" \
+  -pointsize 16 \
+  -annotate +0+85  "${FREE_BACKUP}" \
+  -pointsize 14 \
+  -annotate +0+110 "${TIME_NOW}" \
+  "${TMPPNG}"
+
+# ---- Rotate for vertical mount ----
+# If rotation is wrong direction, change -90 to 90
+convert "${TMPPNG}" -rotate -90 -resize 128x64\! "${OUTPNG}"
+
+# ---- Push to CloudKey display ----
+/sbin/ck-splash -s image -f "${OUTPNG}"
+
 ---
+```
 
 ## Run Manually
 
