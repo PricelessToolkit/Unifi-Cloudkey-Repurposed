@@ -1,248 +1,275 @@
-# rsync-snapshots.sh — Snapshot Backups over SSH
+# rsync-snapshots
 
-A safer snapshot-based backup script using `rsync` and hard links (`--link-dest`).
+Safer snapshot backups over SSH using `rsync` + hard-linking (`--link-dest`).
+
+This script creates timestamped remote snapshots like:
+
+```text
+2026-03-07_231512
+2026-03-07_232741
+2026-03-08_030000
+latest -> 2026-03-08_030000
+```
+
+Each successful run creates a new snapshot directory. Unchanged files are hard-linked from the previous snapshot, so they do not get copied again in full.
+
+## Features
+
+- Timestamped snapshots: `YYYY-MM-DD_HHMMSS`
+- Uses `rsync --link-dest` for efficient snapshot storage
+- Creates `.incomplete-*` temp snapshots first, then atomically renames on success
+- Keeps only the last `N` completed snapshots
+- Remote lock directory to prevent concurrent runs
+- Optional Telegram notifications on failure and/or success
+- Safety check for required source paths before backup starts
+- Optional excludes by file extension and directory name
+- Optional remote free-space preflight check
+- Optional auto-cleanup of stale `.incomplete-*` folders from previous failed runs
+- Optional cleanup of same-name temp folder for the current run
+- Portable remote finalize logic using `bash`
+- Works well for unattended cron jobs
+
+## How it works
+
+### Snapshot flow
 
 Each run:
 
-- Creates snapshot: `YYYY-MM-DD_HHMMSS`
-- Uses `.incomplete-*` temp directory
-- Atomically renames on success
-- Updates `latest` symlink
-- Enforces retention (keep last N)
-- Prevents concurrent runs (remote lockdir)
-- Performs remote disk space pre-check
-- Protects against accidental mass deletion
-- Optionally sends Telegram notifications
+1. validates local config and source paths
+2. connects to the remote server over SSH
+3. checks remote free space if enabled
+4. acquires a remote lock
+5. handles old `.incomplete-*` folders
+6. creates a new remote temp snapshot:
+   `.incomplete-YYYY-MM-DD_HHMMSS`
+7. runs `rsync` into that temp snapshot
+8. if rsync succeeds:
+   - renames the temp snapshot to the final snapshot name
+   - updates `latest`
+   - deletes older snapshots beyond retention
+9. releases the lock
+10. sends Telegram notification if enabled
 
----
+### Important behavior
 
-# 1. Requirements
+A **new snapshot folder is created on every successful run**, even if no files changed.
 
-## Local
-- bash
-- rsync
-- ssh
-- curl (optional, for Telegram)
+This is intentional. It gives you:
 
-## Remote
-- rsync
-- bash
-- coreutils (mkdir, mv, ln, rm, ls, awk, sed, head, wc, readlink)
-- df
+- a record that the backup actually ran successfully at that time
+- a clean restore point for that timestamp
+- predictable retention behavior
+- easier monitoring of scheduled backups
 
----
+Because the script uses `--link-dest`, unchanged files are usually hard-linked from the previous snapshot, so they do not take full extra space again.
 
-# 2. Configuration
+## Example snapshot layout
 
-Edit the CONFIG section in the script.
+```text
+/volume1/backup/sync/snapshots/
+├── 2026-03-07_231512/
+├── 2026-03-07_232741/
+├── 2026-03-08_030000/
+└── latest -> 2026-03-08_030000
+```
 
-## Required
+If a run fails during transfer, you may see something like:
+
+```text
+.incomplete-2026-03-08_150000/
+```
+
+That directory contains the partial/incomplete snapshot for that failed run.
+
+## Requirements
+
+### Local machine
+
+- `bash`
+- `rsync`
+- `ssh`
+- `curl` (only if using Telegram)
+
+### Remote machine
+
+- `bash`
+- `rsync`
+- `mkdir`
+- `mv`
+- `ln`
+- `rm`
+- `df`
+- `awk`
+- `ls`
+- `sed`
+- `head`
+- `wc`
+- `readlink`
+
+## Example config
 
 ```bash
-LOCAL_BASE_DIR="/data"
+# Local source base directory
+LOCAL_BASE_DIR="/srv/backup/data/sync"
 
+# Require these paths under LOCAL_BASE_DIR
+REQUIRED_PATHS="immich"
+
+# Remote SSH target
 REMOTE_USER="root"
-REMOTE_HOST="server.lan"
+REMOTE_HOST="10.0.0.4"
 REMOTE_PORT="22"
 
-REMOTE_BASE_DIR="/volume1/backup/rsync"
+# Remote destination
+REMOTE_BASE_DIR="/volume1/backup/sync"
+REMOTE_SNAP_DIR="${REMOTE_BASE_DIR}/snapshots"
 
+# Keep last N completed snapshots
 SNAPSHOT_KEEP="10"
-```
 
----
+# Limit maximum deletions per run (0 = disabled)
+MAX_DELETE="0"
 
-# 3. Safety Features
+# Telegram notifications
+TELEGRAM_NOTIFY_ON_FAILURE="1"
+TELEGRAM_NOTIFY_ON_SUCCESS="1"
+TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
+TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 
-## Required Paths Guard
+# Excludes
+EXCLUDE_EXTENSIONS="mp4 mp3"
+EXCLUDE_DIRNAMES="pictures trash"
 
-Prevents running if critical paths are missing:
+# Delete excluded files from destination too
+DELETE_EXCLUDED="0"
 
-```bash
-REQUIRED_PATHS="photos documents"
-```
+# SSH keepalive
+SSH_SERVER_ALIVE_INTERVAL="30"
+SSH_SERVER_ALIVE_COUNT_MAX="6"
 
-Set empty to disable.
+# Optional flags
+ONE_FILE_SYSTEM="0"
+PRESERVE_ACL_XATTR="0"
+PRESERVE_SOURCE_HARDLINKS="0"
+RSYNC_RESUME_PARTIAL="1"
+SSH_STRICT_HOST_KEY_CHECKING="yes"
 
----
-
-## Max Delete Protection
-
-Limits how many deletions rsync can perform:
-
-```bash
-MAX_DELETE="50000"
-```
-
-Prevents wiping destination if source is empty/mis-mounted.
-
-Set `0` to disable.
-
----
-
-## Remote Lock
-
-Creates:
-
-```
-.rsync-snapshots.lockdir
-```
-
-Prevents concurrent runs.
-
----
-
-## Incomplete Snapshot Protection
-
-- Script refuses to overwrite existing `.incomplete-*`
-- Leaves failed snapshots for inspection
-- Atomic rename only on success
-
----
-
-## Remote Disk Space Check
-
-Optional thresholds:
-
-```bash
+# Remote free-space checks
 REMOTE_MIN_FREE_BYTES=0
 REMOTE_MIN_FREE_PERCENT=""
+
+# Incomplete snapshot handling
+ALLOW_DELETE_OLD_INCOMPLETE="1"
+ALLOW_DELETE_EXISTING_TMP_FOR_THIS_RUN="1"
 ```
 
-If free space is below threshold, backup aborts before rsync.
+## Incomplete snapshot handling
 
----
+There are two separate controls:
 
-# 4. Exclusions
-
-## By extension
+### 1. Delete stale incomplete folders from older failed runs
 
 ```bash
-EXCLUDE_EXTENSIONS="mp4 mp3"
+ALLOW_DELETE_OLD_INCOMPLETE="1"
 ```
 
-## By directory name
+If enabled, the script automatically removes old `.incomplete-*` directories left behind by previous failed runs.
+
+If disabled, the script refuses to continue when such directories exist.
+
+### 2. Delete the temp folder for this exact run if it already exists
 
 ```bash
-EXCLUDE_DIRNAMES="pictures trash"
+ALLOW_DELETE_EXISTING_TMP_FOR_THIS_RUN="1"
 ```
 
-## Delete excluded from destination
+This only applies if the temp folder name for the current run already exists.
 
-```bash
-DELETE_EXCLUDED="1"
-```
+That is a separate case from old failed runs.
 
----
+## Telegram notifications
 
-# 5. Optional Features
+The script can send Telegram messages on failure and/or success.
 
-## Resume support
-
-```bash
-RSYNC_RESUME_PARTIAL="1"
-```
-
-Enables `--partial-dir` inside temp snapshot.
-
-## Stay on one filesystem
-
-```bash
-ONE_FILE_SYSTEM="1"
-```
-
-## Preserve ACLs / xattrs
-
-```bash
-PRESERVE_ACL_XATTR="1"
-```
-
-## Preserve source hardlinks
-
-```bash
-PRESERVE_SOURCE_HARDLINKS="1"
-```
-
----
-
-# 6. SSH Setup
-
-Test:
-
-```bash
-ssh -p 22 root@server.lan
-```
-
-Use SSH keys for automation.
-
-Host key checking mode:
-
-```bash
-SSH_STRICT_HOST_KEY_CHECKING="yes"
-```
-
----
-
-# 7. Snapshot Structure (Remote)
-
-```
-/volume1/backup/rsync/snapshots/
-    2026-02-20_013045/
-    2026-02-21_021512/
-    latest -> 2026-02-21_021512
-    .rsync-snapshots.lockdir
-```
-
-Temporary during run:
-
-```
-.incomplete-2026-02-22_021533/
-```
-
----
-
-# 8. Running
-
-```bash
-./rsync-snapshots.sh
-```
-
-On success:
-
-```
-Backup OK: 2026-02-24_021533 -> user@host:/volume1/backup/rsync/snapshots/...
-```
-
----
-
-# 9. Cron Example
-
-```cron
-15 2 * * * /full/path/rsync-snapshots.sh >> /var/log/rsync-snapshots.log 2>&1
-```
-
-Use absolute paths.
-
----
-
-# 10. Telegram Notifications (Optional)
+### Required settings
 
 ```bash
 TELEGRAM_NOTIFY_ON_FAILURE="1"
-TELEGRAM_NOTIFY_ON_SUCCESS="0"
-TELEGRAM_BOT_TOKEN="..."
-TELEGRAM_CHAT_ID="..."
+TELEGRAM_NOTIFY_ON_SUCCESS="1"
+TELEGRAM_BOT_TOKEN="YOUR_BOT_TOKEN"
+TELEGRAM_CHAT_ID="YOUR_CHAT_ID"
 ```
 
-Failure notifications recommended.
-Success notifications optional.
+### Notes
 
----
+- `curl` must be installed on the local machine
+- the bot must be able to message the target chat
+- for private chats, start the bot first
+- for groups, add the bot to the group
+- use the correct numeric chat ID
 
-# 11. Notes
+## Running manually
 
-- Source contents are copied, not the directory itself.
-- Hard links ensure unchanged files consume no additional space.
-- Snapshots are independent.
-- Safe to interrupt — incomplete snapshots are not finalized.
-- Retention only deletes fully completed snapshots.
+```bash
+chmod +x /home/madman/rsync-snapshots.sh
+/home/madman/rsync-snapshots.sh
+```
+
+If you added:
+
+```bash
+RSYNC_OPTS=(-a --numeric-ids --delete --delete-delay --info=progress2)
+```
+
+then manual runs will show rsync progress output.
+
+## Cron example
+
+Run the script twice a day at `03:00` and `15:00`:
+
+```cron
+SHELL=/bin/bash
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+
+0 3,15 * * * /bin/bash /home/madman/rsync-snapshots.sh >/dev/null 2>&1
+```
+
+This works well if Telegram is your only alert/notification method.
+
+## What happens if rsync fails
+
+If `rsync` fails:
+
+1. the script prints an error
+2. it exits with the same rsync exit code
+3. the `EXIT` trap runs
+4. the remote lock is released
+5. a Telegram failure message is sent if enabled
+6. the `.incomplete-*` folder is left in place unless later cleanup removes it
+
+The failed snapshot is **not** finalized, `latest` is **not** updated, and retention cleanup is **not** run.
+
+## Why a new snapshot is created even if nothing changed
+
+This is intentional.
+
+Benefits:
+
+- proves the backup ran successfully at that time
+- gives a restore point for each scheduled run
+- makes backup history easier to understand
+- keeps retention simple and predictable
+
+Because unchanged files are hard-linked from the previous snapshot, this usually costs much less space than a full copy.
+
+## Safety notes
+
+- do not set `LOCAL_BASE_DIR="/"`.
+- use `REQUIRED_PATHS` to protect against backing up an empty or wrongly mounted source.
+- keep SSH key authentication working for unattended cron jobs.
+- use `MAX_DELETE` if you want extra protection against large accidental deletions.
+- make sure the remote filesystem supports hard links.
+
+## License / usage
+
+Use, modify, and adapt for your own backup setup.
