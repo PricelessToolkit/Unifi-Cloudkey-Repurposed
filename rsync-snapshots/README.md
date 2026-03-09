@@ -1,12 +1,12 @@
 ## Backup flow
 
-This setup uses two stages:
+This setup works in two stages:
 
 1. `clone.sh`
-   Performs a simple one-way exact clone from VMs/containers/RPi to the central backup server.
+   Performs a simple one-way exact clone from VMs/containers to the central backup server on the local network.
 
 2. `rsync-snapshots.sh`
-   Creates timestamped snapshots from the central backup server to the remote backup target.
+   Creates timestamped snapshots from the central backup server to the remote CloudKey backup target.
 
 # rsync-snapshots
 
