@@ -1,3 +1,13 @@
+## Backup flow
+
+This setup uses two stages:
+
+1. `clone.sh`
+   Performs a simple one-way exact clone from VMs/containers/RPi to the central backup server.
+
+2. `rsync-snapshots.sh`
+   Creates timestamped snapshots from the central backup server to the remote backup target.
+
 # rsync-snapshots
 
 Safer snapshot backups over SSH using `rsync` + hard-linking (`--link-dest`).
