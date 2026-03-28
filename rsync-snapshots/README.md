@@ -8,6 +8,19 @@ This setup works in two stages:
 2. `rsync-snapshots.sh`
    Creates timestamped snapshots from the central backup server to the remote CloudKey backup target.
 
+# clone.sh
+
+`clone.sh` is a simple rsync-based mirror tool for consolidating data onto a central local server.
+
+Use it when you want to copy folders from other machines into one main storage location without snapshot retention or versioned history.
+
+Typical flow:
+
+`source machines -> clone.sh -> central local server -> rsync-snapshots.sh -> remote backup server`
+
+Unlike `rsync-snapshots.sh`, this script does not create dated snapshots or retention history. It only makes the destination match the source.
+
+
 # rsync-snapshots
 
 Safer snapshot backups over SSH using `rsync` + hard-linking (`--link-dest`).
