@@ -21,7 +21,7 @@ Typical flow:
 Unlike `rsync-snapshots.sh`, this script does not create dated snapshots or retention history. It only makes the destination match the source.
 
 
-# rsync-snapshots
+# rsync-snapshots.sh
 
 Safer snapshot backups over SSH using `rsync` + hard-linking (`--link-dest`).
 
