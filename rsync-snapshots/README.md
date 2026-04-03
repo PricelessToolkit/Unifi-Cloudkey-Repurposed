@@ -6,10 +6,10 @@ This setup works in two stages:
    Performs a simple one-way exact clone from VMs/containers to the central backup server on the local network.
 
 2. `rsync-snapshots.sh`
-   Creates timestamped snapshots from the central backup server to the remote CloudKey backup target.
+   Creates timestamped snapshots from the central backup server to the remote backup server.
 
 3. `cloudpanel-hosts-backup.sh`
-Connects from the local backup server to a CloudPanel VPS over SSH, downloads locally generated site backups.
+Connects from the central backup server to a CloudPanel VPS over SSH, downloads locally generated site backups.
 
 # clone.sh
 
