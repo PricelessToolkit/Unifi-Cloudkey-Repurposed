@@ -11,6 +11,29 @@ This setup works in two stages:
 3. `cloudpanel-hosts-backup.sh`
 Connects from the central backup server to a CloudPanel VPS over SSH, downloads locally generated site backups.
 
+```text
++-------------------+
+| VMs / Containers  |
+| `clone.sh`        |
++-------------------+
+          |
+          |
+          v
++-------------------------------+                       
+| Central Backup Server         |                         +----------------------+
+| `rsync-snapshots.sh`          | --------------------->  | Remote Backup Server |
+| `cloudpanel-hosts-backup.sh`  |                         +----------------------+
++-------------------------------+             
+          ^
+          |
+          |
+          |
+          |
++------------------------+
+|   CloudPanel VPS       | 
++------------------------+
+
+```
 # clone.sh
 
 `clone.sh` is a simple rsync-based mirror tool for consolidating data onto a central local server.
