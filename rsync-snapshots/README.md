@@ -8,6 +8,9 @@ This setup works in two stages:
 2. `rsync-snapshots.sh`
    Creates timestamped snapshots from the central backup server to the remote CloudKey backup target.
 
+3. `cloudpanel-hosts-backup.sh`
+Connects from the local backup server to a CloudPanel VPS over SSH, downloads locally generated site backups.
+
 # clone.sh
 
 `clone.sh` is a simple rsync-based mirror tool for consolidating data onto a central local server.
