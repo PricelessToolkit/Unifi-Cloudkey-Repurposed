@@ -1,3 +1,37 @@
+# This script is used to back up CloudPanel-hosted sites from a VPS to a local machine.
+#
+# It is intended to work together with a custom backup job created inside CloudPanel.
+# In CloudPanel, you should create a custom rsync backup job that stores backup files
+# inside each site user directory, for example in:
+#
+#   /home/<site-user>/backups
+#
+# This script connects to the VPS over SSH using an SSH key, finds all CloudPanel site
+# backup folders, and downloads them to the local server. It also downloads the matching
+# htdocs folder from the same parent directory, so both the backup files and website files
+# are copied locally.
+#
+# The local folder structure is organized by the parent directory name, for example:
+#
+#   /home/webhost/backups   ->   ~/vps-backups/webhost/backups
+#   /home/webhost/htdocs    ->   ~/vps-backups/webhost/htdocs
+#
+# Excluded system folders:
+#   /home/mysql
+#   /home/clp
+#   /home/ubuntu
+#
+# The rsync command uses --delete, which means the local copy is kept in sync with the VPS.
+# If a file is removed from the remote backup or htdocs folder, it will also be removed
+# from the local copy during the next run.
+#
+# In short:
+# 1. Create a custom rsync backup job in CloudPanel that writes site backups locally.
+# 2. Run this script from your local server or desktop.
+# 3. The script downloads all detected CloudPanel site backups and htdocs folders
+#    from the VPS to your local backup destination.
+
+
 #!/usr/bin/env bash
 set -euo pipefail
 
