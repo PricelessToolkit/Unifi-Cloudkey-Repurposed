@@ -14,15 +14,15 @@ Connects from the central backup server to a CloudPanel VPS over SSH, downloads 
 ```text
 +-------------------+
 | VMs / Containers  |
-| `clone.sh`        |
+| "clone.sh"        |
 +-------------------+
           |
           |
           v
 +-------------------------------+                       
 | Central Backup Server         |                         +----------------------+
-| `rsync-snapshots.sh`          | --------------------->  | Remote Backup Server |
-| `cloudpanel-hosts-backup.sh`  |                         +----------------------+
+| "rsync-snapshots.sh"          | --------------------->  | Remote Backup Server |
+| "cloudpanel-hosts-backup.sh"  |                         +----------------------+
 +-------------------------------+             
           ^
           |
